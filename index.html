@@ -6,8 +6,8 @@
     <title>CUBA</title>
     <style>
         :root {
-            --bg-color: #f7f3ec; /* Tom de areia claro vintage */
-            --header-bg: #d34a44; /* Vermelho clássico estilo carro antigo */
+            --bg-color: #f7f3ec;
+            --header-bg: #d34a44;
             --text-color: #2c3e50;
             --card-bg: #ffffff;
         }
@@ -45,7 +45,7 @@
             padding: 0 1rem;
         }
 
-        /* Grid com 2 ou 3 por linha dependendo da tela */
+        /* Grade da Galeria */
         .gallery-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -75,7 +75,6 @@
             display: block;
         }
 
-        /* Ícone de play sobreposto aos vídeos no grid */
         .play-icon {
             position: absolute;
             top: 50%;
@@ -93,7 +92,7 @@
             pointer-events: none;
         }
 
-        /* Modal / Lightbox */
+        /* Modal / Lightbox estilo Apresentação */
         .modal {
             display: none;
             position: fixed;
@@ -101,24 +100,35 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.9);
+            background: rgba(0,0,0,0.95);
             z-index: 1000;
             align-items: center;
             justify-content: center;
-            padding: 2rem;
         }
 
         .modal.active {
             display: flex;
         }
 
+        /* Container que segura a imagem/vídeo para não vazar a tela */
+        .modal-content-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 80px; /* Espaço para as setas */
+        }
+
         .modal-content {
-            max-width: 90%;
-            max-height: 90vh;
-            border-radius: 4px;
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
             box-shadow: 0 0 20px rgba(0,0,0,0.5);
         }
 
+        /* Botão de Fechar */
         .close-btn {
             position: absolute;
             top: 20px;
@@ -127,10 +137,37 @@
             font-size: 40px;
             cursor: pointer;
             transition: color 0.2s;
+            z-index: 1010;
         }
+        .close-btn:hover { color: var(--header-bg); }
 
-        .close-btn:hover {
-            color: var(--header-bg);
+        /* Setas de navegação no modal */
+        .nav-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 3rem;
+            color: rgba(255, 255, 255, 0.6);
+            background: none;
+            border: none;
+            cursor: pointer;
+            z-index: 1010;
+            padding: 20px;
+            transition: color 0.3s;
+        }
+        .nav-arrow:hover { color: white; }
+        .arrow-left { left: 10px; }
+        .arrow-right { right: 10px; }
+
+        /* Contador */
+        .counter {
+            position: absolute;
+            top: 25px;
+            left: 30px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            z-index: 1010;
         }
 
     </style>
@@ -147,74 +184,120 @@
         </div>
     </main>
 
-    <!-- Modal para visualização ampliada -->
+    <!-- Modal para visualização ampliada com navegação -->
     <div class="modal" id="mediaModal">
+        <span class="counter" id="modalCounter"></span>
         <span class="close-btn" onclick="closeModal()">&times;</span>
-        <div id="modalBody"></div>
+        
+        <button class="nav-arrow arrow-left" onclick="prevMedia(event)">&#10094;</button>
+        
+        <div class="modal-content-wrapper" id="modalBody" onclick="closeIfClickedOutside(event)">
+            <!-- A mídia (img ou vídeo) entrará aqui -->
+        </div>
+        
+        <button class="nav-arrow arrow-right" onclick="nextMedia(event)">&#10095;</button>
     </div>
 
     <script>
-        // Configurações
-        const totalFotos = 32;
-        const totalVideos = 8;
+        // Criar uma lista (Array) única com todas as mídias para podermos navegar entre elas
+        const mediaList = [];
+        
+        // 1 a 32 (.jpeg)
+        for (let i = 1; i <= 32; i++) {
+            mediaList.push({ type: 'image', src: `${i}.jpeg` });
+        }
+        // v1 a v8 (.mp4)
+        for (let i = 1; i <= 8; i++) {
+            mediaList.push({ type: 'video', src: `v${i}.mp4` });
+        }
+
         const gallery = document.getElementById('gallery');
+        let currentModalIndex = 0; // Guarda qual mídia está aberta no momento
 
-        // Gerar Fotos (1.jpeg até 32.jpeg)
-        for (let i = 1; i <= totalFotos; i++) {
+        // Renderizar a Grade (Grid) na página inicial
+        mediaList.forEach((item, index) => {
             const card = document.createElement('div');
             card.className = 'card';
-            card.onclick = () => openModal('image', `${i}.jpeg`);
+            card.onclick = () => openModal(index);
             
-            card.innerHTML = `
-                <img src="${i}.jpeg" alt="Foto Cuba ${i}" loading="lazy" onerror="this.src='https://via.placeholder.com/400x300?text=Foto+${i}+não+encontrada'">
-            `;
+            if (item.type === 'image') {
+                card.innerHTML = `<img src="${item.src}" loading="lazy" onerror="this.src='https://via.placeholder.com/400x300?text=Foto+não+encontrada'">`;
+            } else {
+                card.innerHTML = `
+                    <video src="${item.src}" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video>
+                    <div class="play-icon">▶</div>
+                `;
+            }
             gallery.appendChild(card);
-        }
+        });
 
-        // Gerar Vídeos (v1.mp4 até v8.mp4)
-        for (let i = 1; i <= totalVideos; i++) {
-            const card = document.createElement('div');
-            card.className = 'card';
-            card.onclick = () => openModal('video', `v${i}.mp4`);
-            
-            card.innerHTML = `
-                <video src="v${i}.mp4" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video>
-                <div class="play-icon">▶</div>
-            `;
-            gallery.appendChild(card);
-        }
-
-        // Funções do Modal
+        // Controle do Modal / Lightbox
         const modal = document.getElementById('mediaModal');
         const modalBody = document.getElementById('modalBody');
+        const counter = document.getElementById('modalCounter');
 
-        function openModal(type, src) {
-            modalBody.innerHTML = ''; // Limpa o modal
-            
-            if (type === 'image') {
-                modalBody.innerHTML = `<img src="${src}" class="modal-content" alt="Visualização ampliada">`;
-            } else if (type === 'video') {
-                modalBody.innerHTML = `<video src="${src}" class="modal-content" controls autoplay></video>`;
-            }
-            
+        function openModal(index) {
+            currentModalIndex = index;
+            updateModalContent();
             modal.classList.add('active');
+        }
+
+        function updateModalContent() {
+            const item = mediaList[currentModalIndex];
+            counter.innerText = `${currentModalIndex + 1} / ${mediaList.length}`;
+            modalBody.innerHTML = ''; // Limpa a mídia anterior
+
+            if (item.type === 'image') {
+                modalBody.innerHTML = `<img src="${item.src}" class="modal-content">`;
+            } else if (item.type === 'video') {
+                modalBody.innerHTML = `<video src="${item.src}" class="modal-content" controls autoplay playsinline></video>`;
+            }
         }
 
         function closeModal() {
             modal.classList.remove('active');
-            modalBody.innerHTML = ''; // Limpa para parar o vídeo ao fechar
+            modalBody.innerHTML = ''; // Limpa para o vídeo parar de tocar
         }
 
-        // Fechar modal ao clicar fora da imagem/vídeo
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
+        // Navegação nas setas
+        function nextMedia(e) {
+            if(e) e.stopPropagation(); // Impede que o clique na seta feche o modal
+            if (currentModalIndex < mediaList.length - 1) {
+                currentModalIndex++;
+            } else {
+                currentModalIndex = 0; // Volta pra primeira
+            }
+            updateModalContent();
+        }
+
+        function prevMedia(e) {
+            if(e) e.stopPropagation(); // Impede que o clique na seta feche o modal
+            if (currentModalIndex > 0) {
+                currentModalIndex--;
+            } else {
+                currentModalIndex = mediaList.length - 1; // Vai pra última
+            }
+            updateModalContent();
+        }
+
+        // Fechar ao clicar no fundo preto (mas não na foto/setas)
+        function closeIfClickedOutside(e) {
+            if (e.target === modalBody) {
                 closeModal();
             }
-        });
-        
-        // Fechar modal com a tecla ESC
+        }
+
+        // Navegação pelo teclado
         document.addEventListener('keydown', (e) => {
-            if (e.key === "Escape") closeModal();
+            if (!modal.classList.contains('active')) return; // Só funciona se o modal estiver aberto
+
+            if (e.key === "Escape") {
+                closeModal();
+            } else if (e.key === "ArrowRight") {
+                nextMedia();
+            } else if (e.key === "ArrowLeft") {
+                prevMedia();
+            }
         });
     </script>
 </body>
