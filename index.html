@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CUBA</title>
+    <style>
+        :root {
+            --bg-color: #f7f3ec; /* Tom de areia claro vintage */
+            --header-bg: #d34a44; /* Vermelho clássico estilo carro antigo */
+            --text-color: #2c3e50;
+            --card-bg: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        header {
+            background-color: var(--header-bg);
+            padding: 3rem 1rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            color: #fff;
+            font-size: 3.5rem;
+            letter-spacing: 8px;
+            font-weight: 300;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        main {
+            max-width: 1200px;
+            margin: 3rem auto;
+            padding: 0 1rem;
+        }
+
+        /* Grid com 2 ou 3 por linha dependendo da tela */
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            aspect-ratio: 4/3;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+        }
+
+        .card img, .card video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* Ícone de play sobreposto aos vídeos no grid */
+        .play-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.6);
+            color: white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            pointer-events: none;
+        }
+
+        /* Modal / Lightbox */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            max-width: 90%;
+            max-height: 90vh;
+            border-radius: 4px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: white;
+            font-size: 40px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .close-btn:hover {
+            color: var(--header-bg);
+        }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>CUBA</h1>
+    </header>
+
+    <main>
+        <div class="gallery-grid" id="gallery">
+            <!-- As fotos e vídeos serão injetados aqui pelo JavaScript -->
+        </div>
+    </main>
+
+    <!-- Modal para visualização ampliada -->
+    <div class="modal" id="mediaModal">
+        <span class="close-btn" onclick="closeModal()">&times;</span>
+        <div id="modalBody"></div>
+    </div>
+
+    <script>
+        // Configurações
+        const totalFotos = 32;
+        const totalVideos = 8;
+        const gallery = document.getElementById('gallery');
+
+        // Gerar Fotos (1.jpeg até 32.jpeg)
+        for (let i = 1; i <= totalFotos; i++) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.onclick = () => openModal('image', `${i}.jpeg`);
+            
+            card.innerHTML = `
+                <img src="${i}.jpeg" alt="Foto Cuba ${i}" loading="lazy" onerror="this.src='https://via.placeholder.com/400x300?text=Foto+${i}+não+encontrada'">
+            `;
+            gallery.appendChild(card);
+        }
+
+        // Gerar Vídeos (v1.mp4 até v8.mp4)
+        for (let i = 1; i <= totalVideos; i++) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.onclick = () => openModal('video', `v${i}.mp4`);
+            
+            card.innerHTML = `
+                <video src="v${i}.mp4" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video>
+                <div class="play-icon">▶</div>
+            `;
+            gallery.appendChild(card);
+        }
+
+        // Funções do Modal
+        const modal = document.getElementById('mediaModal');
+        const modalBody = document.getElementById('modalBody');
+
+        function openModal(type, src) {
+            modalBody.innerHTML = ''; // Limpa o modal
+            
+            if (type === 'image') {
+                modalBody.innerHTML = `<img src="${src}" class="modal-content" alt="Visualização ampliada">`;
+            } else if (type === 'video') {
+                modalBody.innerHTML = `<video src="${src}" class="modal-content" controls autoplay></video>`;
+            }
+            
+            modal.classList.add('active');
+        }
+
+        function closeModal() {
+            modal.classList.remove('active');
+            modalBody.innerHTML = ''; // Limpa para parar o vídeo ao fechar
+        }
+
+        // Fechar modal ao clicar fora da imagem/vídeo
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+        
+        // Fechar modal com a tecla ESC
+        document.addEventListener('keydown', (e) => {
+            if (e.key === "Escape") closeModal();
+        });
+    </script>
+</body>
+</html>
